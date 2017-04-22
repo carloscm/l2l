@@ -43,7 +43,7 @@ local list = utils.prototype("list", function(list, ...)
   if select("#", ...) == 0 then
     return vector()
   end
-  local self = setmetatable({position = data.n + 1}, list)
+  local self = setmetatable({position = data.n + 1, contiguous = true}, list)
   local count = select("#", ...)
   local index = self.position
   for i=1, count do
@@ -58,6 +58,31 @@ local list = utils.prototype("list", function(list, ...)
   retain(self.position)
   return self
 end)
+
+function list:__index(key)
+  if type(key) ~= "number" then
+    return rawget(list, key)
+  end
+
+  if self.contiguous then
+    return data[self.position + 2 * key]
+  end
+
+  -- safe but slower and generates extra garbage, since cdr creates tables
+  -- while t and key > 0 do
+  --     t = t:cdr()
+  --     key = key - 1
+  -- end
+  -- return t and t:car()
+
+  -- not as safe? but much more efficient, does not create tables
+  local position = self.position
+  while position and key > 0 do
+      position = data[position + 1]
+      key = key - 1
+  end
+  return position and data[position]
+end
 
 function list:__gc()
   release(self.position)
@@ -97,16 +122,30 @@ function list:__tostring()
   return "list("..table.concat(text, ", ")..")"
 end
 
+-- function list:__ipairs()
+--   local cdr = self
+--   local i = 0
+--   return function()
+--     if not cdr then
+--       return
+--     end
+--     i = i + 1
+--     local car = cdr:car()
+--     cdr = cdr:cdr()
+--     return i, car
+--   end, self, 0
+-- end
+
 function list:__ipairs()
-  local cdr = self
+  local position = self.position
   local i = 0
   return function()
-    if not cdr then
+    if not position then
       return
     end
     i = i + 1
-    local car = cdr:car()
-    cdr = cdr:cdr()
+    local car = data[position]
+    position = data[position + 1]
     return i, car
   end, self, 0
 end
@@ -132,7 +171,7 @@ function list:cdr()
   local position = data[self.position + 1]
   if position then
     retain(position)
-    return setmetatable({position = position}, list)
+    return setmetatable({position = position, contiguous = self.contiguous}, list)
   end
 end
 
@@ -166,7 +205,7 @@ function list.cast(t, f)
   if not t or count == 0 then
     return nil
   end
-  local self = setmetatable({position = data.n + 1}, list)
+  local self = setmetatable({position = data.n + 1, contiguous = true}, list)
   local n = data.n
   data.n = data.n + count * 2
   for i, v in ipairs(t) do
@@ -195,7 +234,7 @@ function list:cons(car)
     data[data.n] = self.position
   end
   retain(position)
-  return setmetatable({position = position}, list)  
+  return setmetatable({position = position, contiguous = false}, list)  
 end
 
 return list
