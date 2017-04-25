@@ -150,15 +150,28 @@ function list:__ipairs()
   end, self, 0
 end
 
+-- function list:__len()
+--   if not self then
+--     return 0
+--   end
+--   local cdr = self:cdr()
+--   local count = 1
+--   while cdr do
+--     count = count + 1
+--     cdr = cdr:cdr()
+--   end
+--   return count
+-- end
+
 function list:__len()
   if not self then
     return 0
   end
-  local cdr = self:cdr()
+  local position = data[self.position + 1]
   local count = 1
-  while cdr do
+  while position do
     count = count + 1
-    cdr = cdr:cdr()
+    position = data[position + 1]
   end
   return count
 end
