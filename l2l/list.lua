@@ -1,3 +1,4 @@
+
 -- A very fast Lua linked list implementation that can only add a number of
 -- items equal to the maximum integer that can be held in a lua number.
 
@@ -43,8 +44,8 @@ local list = utils.prototype("list", function(list, ...)
   if select("#", ...) == 0 then
     return vector()
   end
-  local self = setmetatable({position = data.n + 1, contiguous = true}, list)
   local count = select("#", ...)
+  local self = setmetatable({position = data.n + 1, contiguous = count}, list)
   local index = self.position
   for i=1, count do
     local datum = (select(i, ...))
@@ -167,6 +168,9 @@ function list:__len()
   if not self then
     return 0
   end
+  if self.contiguous then
+    return self.contiguous
+  end
   local position = data[self.position + 1]
   local count = 1
   while position do
@@ -184,7 +188,11 @@ function list:cdr()
   local position = data[self.position + 1]
   if position then
     retain(position)
-    return setmetatable({position = position, contiguous = self.contiguous}, list)
+    local contiguous = self.contiguous
+    if type(contiguous) == "number" then
+      contiguous = contiguous - 1
+    end
+    return setmetatable({position = position, contiguous = contiguous}, list)
   end
 end
 
@@ -204,6 +212,7 @@ function list:unpack()
   return car
 end
 
+-- WARNING, this uses 1-based
 function list.sub(t, from, to)
   to = to or len(t)
   from = from or 1
@@ -218,7 +227,7 @@ function list.cast(t, f)
   if not t or count == 0 then
     return nil
   end
-  local self = setmetatable({position = data.n + 1, contiguous = true}, list)
+  local self = setmetatable({position = data.n + 1, contiguous = count}, list)
   local n = data.n
   data.n = data.n + count * 2
   for i, v in ipairs(t) do
