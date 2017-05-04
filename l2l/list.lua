@@ -85,6 +85,14 @@ function list:__index(key)
   return position and data[position]
 end
 
+function list:__newindex(key, value)
+  if type(key) ~= "number" then
+    return rawset(self, key, value)
+  end
+
+  return error("attempting to directly set numeric indexed att in a list")
+end
+
 function list:__gc()
   release(self.position)
 end
