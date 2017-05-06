@@ -233,7 +233,7 @@ function list.cast(t, f)
   -- Cast an ipairs-enumerable object into a list.
   local count = len(t)
   if not t or count == 0 then
-    return nil
+    return vector()
   end
   local self = setmetatable({position = data.n + 1, contiguous = count}, list)
   local n = data.n
